@@ -21,7 +21,6 @@ beforeEach(async () => {
 })
 
 test('Should signup a new user', async () => {
-  // Assert correct response code
   const response = await request(app).post('/users').send({
     name: 'Jane',
     email: 'jane@example.com',
@@ -46,7 +45,6 @@ test('Should signup a new user', async () => {
 })
 
 test('Should login existing user', async () => {
-  // Assert correct response code
   const response = await request(app).post('/users/login').send({
     email: testUser.email,
     password: testUser.password
@@ -58,7 +56,6 @@ test('Should login existing user', async () => {
 })
 
 test('Should not login non-existent user', async () => {
-  // Assert correct response code
   await request(app).post('/users/login').send({
     email: 'nobody@example.com',
     password: 'pass123!!'
@@ -66,7 +63,6 @@ test('Should not login non-existent user', async () => {
 })
 
 test('Should get profile for user', async () => {
-  // Assert correct response code
   await request(app)
     .get('/users/me')
     .set('Authorization', `Bearer ${testUser.tokens[0].token}`)
@@ -75,7 +71,6 @@ test('Should get profile for user', async () => {
 })
 
 test('Should not get profile for unauthenticated user', async () => {
-  // Assert correct response code
   await request(app)
     .get('/users/me')
     .send()
@@ -83,7 +78,6 @@ test('Should not get profile for unauthenticated user', async () => {
 })
 
 test('Should delete account for user', async () => {
-  // Assert correct response code
   await request(app)
     .delete('/users/me')
     .set('Authorization', `Bearer ${testUser.tokens[0].token}`)
@@ -96,9 +90,44 @@ test('Should delete account for user', async () => {
 })
 
 test('Should not delete account for unauthenticated user', async () => {
-  // Assert correct response code
   await request(app)
     .delete('/users/me')
     .send()
     .expect(401)
+})
+
+test('Should upload avatar image', async () => {
+  await request(app)
+    .post('/users/me/avatar')
+    .set('Authorization', `Bearer ${testUser.tokens[0].token}`)
+    .attach('avatar', 'tests/fixtures/profile-pic.jpg')
+    .expect(200)
+
+  // Assert the buffer was saved to the database
+  const user = await User.findById(testUserId)
+  expect(user.avatar).toEqual(expect.any(Buffer))
+})
+
+test('Should update valid user fields', async () => {
+  await request(app)
+    .patch('/users/me')
+    .set('Authorization', `Bearer ${testUser.tokens[0].token}`)
+    .send({
+      name: 'Jack'
+    })
+    .expect(200)
+
+  // Assert the name was updated
+  const user = await User.findById(testUserId)
+  expect(user.name).toEqual('Jack')
+})
+
+test('Should not update invalid user fields', async () => {
+  await request(app)
+    .patch('/users/me')
+    .set('Authorization', `Bearer ${testUser.tokens[0].token}`)
+    .send({
+      invalid: 'Field'
+    })
+    .expect(400)
 })
